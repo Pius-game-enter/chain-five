@@ -1,5 +1,7 @@
 <div align="center">
 
+**English** | [Tiếng Việt](README.vi.md)
+
 <img src="icons/icon-192.png" width="96" alt="Chain Five icon">
 
 # Chain Five
