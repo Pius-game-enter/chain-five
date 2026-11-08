@@ -102,6 +102,9 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(243, 197, 83
   border: 1px solid var(--line);
 }
 .btn.wide { width: 100%; margin-top: 10px; }
+.btn.icon[data-lang-toggle] { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; }
+.panel { position: relative; }
+.panel > .lang-toggle { position: absolute; top: 16px; right: 16px; }
 
 .bot-options { display: grid; gap: 10px; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
 .levels { min-width: 0; margin: 0; padding: 0; border: 0; }
@@ -323,7 +326,7 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(243, 197, 83
   clip-path: polygon(0 0, 100% 0, 92% 50%, 100% 100%, 0 100%, 8% 50%);
 }
 .card.wild .tag { background: linear-gradient(180deg, #34509f, #15225a); }
-.card.dead::after { content: 'Dead'; background: linear-gradient(180deg, #6b6b6b, #3a3a3a); color: #f2f2f2; }
+.card.dead::after { content: var(--dead-label, 'Dead'); background: linear-gradient(180deg, #6b6b6b, #3a3a3a); color: #f2f2f2; }
 
 .card.selected { z-index: 1; transform: translateY(-14px); box-shadow: 0 0 0 3px var(--gold), 0 18px 28px rgba(0, 0, 0, 0.5); }
 .card.dead { filter: grayscale(0.85) brightness(0.8); }
@@ -391,6 +394,15 @@ dialog li + li { margin-top: 6px; }
   .card { flex: none; width: 72px; }
   .card + .card { margin-left: min(6px, calc((100vw - 32px - 7 * 72px) / 6)); }
   .card .tag, .card.dead::after { left: 3cqw; right: 38cqw; }
+}
+
+/* Narrow phones: tighter top bar so both names fit beside the language and help buttons. */
+@media (max-width: 420px) {
+  .topbar, .players { gap: 6px; }
+  .player { gap: 6px; padding: 6px 9px; }
+  .player .dot { width: 12px; height: 12px; }
+  .pip { width: 7px; height: 7px; }
+  .topbar .btn.icon { width: 34px; height: 34px; }
 }
 
 /* Short portrait phones: a tighter hand so the bottom row of the board stays visible. */

@@ -11,6 +11,7 @@ const FILES = [
   'app.js',
   'game.js',
   'bot.js',
+  'i18n.js',
   'manifest.webmanifest',
   'icons/icon-180.png',
   'icons/icon-192.png',

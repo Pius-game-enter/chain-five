@@ -22,6 +22,7 @@ Invite a friend with a link, or take on the computer.
 - **Made for phones too.** Add it to your home screen and it plays like an app, upright or sideways.
 - **A hand-designed deck.** 52 illustrated cards with their own card back.
 - **Fair play.** Your opponent never sees your hand.
+- **English and Vietnamese.** Switch any time with the EN/VI button. Each player sees the game in their own language.
 
 ## Screenshots
 

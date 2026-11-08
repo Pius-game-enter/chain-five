@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <!-- Only this site, the pinned PeerJS script, Google Fonts and the PeerJS broker may load or connect. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://0.peerjs.com wss://0.peerjs.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Chain Five</title>
-  <meta name="description" content="A card and chip five-in-a-row game. Invite a friend with a link and play live.">
+  <meta name="description" content="A card and chip five-in-a-row game. Invite a friend with a link or play the computer.">
   <meta name="theme-color" content="#0b1715">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -17,50 +19,51 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" integrity="sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR" crossorigin="anonymous" defer></script>
   <script type="module" src="app.js"></script>
 </head>
 <body>
 
 <section id="lobby" class="screen center">
   <div class="panel">
+    <button class="btn icon lang-toggle" type="button" data-lang-toggle data-i18n="lang_code" data-i18n-label="switch_lang" data-i18n-title="switch_lang">VI</button>
     <div class="hero-chips" aria-hidden="true">
       <span class="chip p0"></span><span class="chip p1"></span><span class="chip p0"></span><span class="chip p1"></span><span class="chip p0"></span>
     </div>
     <h1>Chain Five</h1>
-    <p class="tagline" id="lobby-hint">Play a card, drop a chip, make five in a row. Invite a friend or take on the computer.</p>
+    <p class="tagline" id="lobby-hint" data-i18n="hint">Play a card, drop a chip, make five in a row. Invite a friend or take on the computer.</p>
     <form id="lobby-form">
-      <label for="name">Your name</label>
-      <input id="name" maxlength="20" autocomplete="nickname" placeholder="e.g. Minh" required>
-      <button id="start" class="btn primary" type="submit">Create a room</button>
+      <label for="name" data-i18n="your_name">Your name</label>
+      <input id="name" maxlength="20" autocomplete="nickname" placeholder="e.g. Minh" data-i18n-placeholder="name_placeholder" required>
+      <button id="start" class="btn primary" type="submit" data-i18n="create">Create a room</button>
       <div id="bot-options" class="bot-options">
         <fieldset class="levels">
-          <legend>Computer level</legend>
+          <legend data-i18n="level">Computer level</legend>
           <div class="segmented">
-            <label><input type="radio" name="level" value="easy"><span>Easy</span></label>
-            <label><input type="radio" name="level" value="medium" checked><span>Medium</span></label>
-            <label><input type="radio" name="level" value="hard"><span>Hard</span></label>
+            <label><input type="radio" name="level" value="easy"><span data-i18n="easy">Easy</span></label>
+            <label><input type="radio" name="level" value="medium" checked><span data-i18n="medium">Medium</span></label>
+            <label><input type="radio" name="level" value="hard"><span data-i18n="hard">Hard</span></label>
           </div>
         </fieldset>
-        <button id="bot" class="btn ghost" type="button">Play the computer</button>
+        <button id="bot" class="btn ghost" type="button" data-i18n="play_bot">Play the computer</button>
       </div>
       <p id="lobby-error" class="error" role="alert"></p>
     </form>
-    <button class="btn link" type="button" data-rules>How to play</button>
+    <button class="btn link" type="button" data-rules data-i18n="how_to_play">How to play</button>
   </div>
 </section>
 
 <section id="waiting" class="screen center" hidden>
   <div class="panel">
     <span class="chip p0 pulse" aria-hidden="true"></span>
-    <h2>Your room is open</h2>
-    <p class="tagline">Send this link to a friend. The game starts the moment they open it.</p>
+    <h2 data-i18n="room_open">Your room is open</h2>
+    <p class="tagline" data-i18n="room_hint">Send this link to a friend. The game starts the moment they open it.</p>
     <div class="invite">
-      <input id="invite-link" readonly aria-label="Invite link">
-      <button id="copy" class="btn primary" type="button">Copy</button>
+      <input id="invite-link" readonly aria-label="Invite link" data-i18n-label="invite_link">
+      <button id="copy" class="btn primary" type="button" data-i18n="copy">Copy</button>
     </div>
-    <button id="share" class="btn ghost wide" type="button" hidden>Share link</button>
-    <p class="waiting">Waiting for your friend</p>
+    <button id="share" class="btn ghost wide" type="button" data-i18n="share" hidden>Share link</button>
+    <p class="waiting" data-i18n="waiting_friend">Waiting for your friend</p>
   </div>
 </section>
 
@@ -71,36 +74,28 @@
       <div class="player p0" id="player-0"><span class="dot"></span><span class="pname"></span><span class="lines"></span></div>
       <div class="player p1" id="player-1"><span class="dot"></span><span class="pname"></span><span class="lines"></span></div>
     </div>
-    <button class="btn icon" type="button" data-rules aria-label="How to play">?</button>
+    <button class="btn icon" type="button" data-lang-toggle data-i18n="lang_code" data-i18n-label="switch_lang" data-i18n-title="switch_lang">VI</button>
+    <button class="btn icon" type="button" data-rules aria-label="How to play" data-i18n-label="how_to_play">?</button>
   </header>
   <div class="table">
-    <div class="board-frame" id="board-frame"><div id="board" aria-label="Board"></div></div>
+    <div class="board-frame" id="board-frame"><div id="board" aria-label="Board" data-i18n-label="board"></div></div>
     <aside class="side" id="side">
       <p id="status" aria-live="polite"></p>
       <p id="last-move"></p>
-      <div id="hand" aria-label="Your hand"></div>
+      <div id="hand" aria-label="Your hand" data-i18n-label="your_hand"></div>
       <div class="side-foot">
-        <button id="swap" class="btn ghost" type="button" hidden>Swap dead card</button>
+        <button id="swap" class="btn ghost" type="button" data-i18n="swap" hidden>Swap dead card</button>
         <button id="rematch" class="btn primary" type="button" hidden>Play again</button>
-        <span class="deck"><img class="deck-pile" src="cards/BACK.svg" alt="">Deck <b id="deck-count">0</b></span>
+        <span class="deck"><img class="deck-pile" src="cards/BACK.svg" alt=""><span data-i18n="deck">Deck</span> <b id="deck-count">0</b></span>
       </div>
     </aside>
   </div>
 </main>
 
 <dialog id="rules">
-  <h2>How to play</h2>
-  <ul>
-    <li>On your turn, play a card and drop a chip on a matching card on the board. Every card is on the board twice.</li>
-    <li>Make five in a row across, down or diagonally. That is a line. <b>Two lines win.</b></li>
-    <li>Your second line may share one chip with your first.</li>
-    <li>Corners are free spots that count for everyone.</li>
-    <li><b>Wild jacks</b> (J♦ J♣) go on any open spot.</li>
-    <li><b>Remove jacks</b> (J♠ J♥) take away one of your opponent's chips. Chips in a finished line are safe.</li>
-    <li>If both spots for a card are taken, the card is dead. Swap it for a new one without losing your turn.</li>
-    <li>The board is the same every game. Each card is once in the top half and once in the bottom half, in suit and rank order, so you can learn where things are.</li>
-  </ul>
-  <form method="dialog"><button class="btn primary wide">Got it</button></form>
+  <h2 data-i18n="how_to_play">How to play</h2>
+  <ul data-i18n-html="rules"></ul>
+  <form method="dialog"><button class="btn primary wide" data-i18n="got_it">Got it</button></form>
 </dialog>
 
 <div id="toast" role="status" hidden></div>

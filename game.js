@@ -114,23 +114,24 @@ function claimLines(board, at, player) {
   return made;
 }
 
+// Errors are thrown as short codes; the UI turns them into text in the player's language.
 export function applyMove(state, player, move) {
-  if (state.over) throw new Error('The game is over.');
-  if (player !== state.turn) throw new Error('Not your turn.');
-  if (!state.hands[player].includes(move?.card)) throw new Error('That card is not in your hand.');
+  if (state.over) throw new Error('game_over');
+  if (player !== state.turn) throw new Error('not_your_turn');
+  if (!state.hands[player].includes(move?.card)) throw new Error('not_in_hand');
 
   const next = structuredClone(state);
   const hand = next.hands[player];
   hand.splice(hand.indexOf(move.card), 1);
 
   if (move.type === 'swap') {
-    if (!isDead(state.board, move.card)) throw new Error('Only a dead card can be swapped.');
-    if (next.deck.length === 0) throw new Error('The deck is empty.');
+    if (!isDead(state.board, move.card)) throw new Error('not_dead');
+    if (next.deck.length === 0) throw new Error('deck_empty');
     hand.push(next.deck.pop());
     return next;
   }
   if (move.type !== 'play' || !targets(state.board, move.card, player).includes(move.cell)) {
-    throw new Error('That card cannot go there.');
+    throw new Error('bad_move');
   }
 
   const cell = next.board[move.cell];

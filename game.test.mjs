@@ -2,6 +2,8 @@
 import assert from 'node:assert/strict';
 import { newGame, applyMove, viewFor, targets, isDead, BOARD_LAYOUT } from './game.js';
 import { pickMove } from './bot.js';
+import { STRINGS } from './i18n.js';
+import { readFileSync } from 'node:fs';
 
 const seeded = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const fresh = seed => ({ ...newGame(['Ann', 'Bo'], seeded(seed)), turn: 0 });
@@ -122,5 +124,18 @@ for (let g = 0; g < 300; g++) {
   if (seats[s.winner] === 'hard') hardWins++;
 }
 assert.ok(hardWins / decided > 0.6, `hard beat easy only ${hardWins}/${decided}`);
+
+// Translations: Vietnamese has every key, with the same {placeholders}, and every
+// error code the engine can throw has text.
+const placeholders = text => [...text.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort().join();
+assert.deepEqual(Object.keys(STRINGS.vi).sort(), Object.keys(STRINGS.en).sort());
+for (const [key, en] of Object.entries(STRINGS.en)) {
+  const vi = STRINGS.vi[key];
+  if (typeof en === 'string') assert.equal(placeholders(vi), placeholders(en), `placeholders differ in ${key}`);
+  else assert.deepEqual(Object.keys(vi).sort(), Object.keys(en).sort(), `word list ${key} differs`);
+}
+const codes = [...readFileSync(new URL('./game.js', import.meta.url), 'utf8').matchAll(/throw new Error\('(\w+)'\)/g)].map(m => m[1]);
+assert.ok(codes.length >= 6);
+for (const code of codes) assert.ok(STRINGS.en[`err_${code}`] && STRINGS.vi[`err_${code}`], `no text for ${code}`);
 
 console.log('game rules ok');
