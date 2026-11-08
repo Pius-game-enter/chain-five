@@ -9,9 +9,17 @@ const ROOM_CODE = /^[a-z0-9]{1,32}$/i;
 const NAME_KEY = 'chain-five-name';
 const LEVEL_KEY = 'chain-five-level';
 const LANG_KEY = 'chain-five-lang';
+const SAVE_KEY = 'chain-five-save'; // the game this browser hosts, or plays against the computer
+const JOIN_KEY = 'chain-five-join'; // the room this browser last joined as a guest
+const SAVE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 const MAX_NAME = 20;
 const TOAST_MS = 2800;
 const CONNECT_TIMEOUT_MS = 15000;
+const RECLAIM_TRIES = 8;
+const RECLAIM_DELAY_MS = 2000;
+const RECONNECT_EVERY_MS = 3000;
+const RECONNECT_WINDOW_MS = 2 * 60 * 1000;
+const BYE_FLUSH_MS = 150;
 const BOT_DELAY_MS = 900;
 const TURN_BUZZ_MS = 30;
 const HOST = 0;
@@ -34,7 +42,9 @@ const roomCode = roomParam !== null && ROOM_CODE.test(roomParam) ? roomParam : n
 let isHost = false;
 let game = null;     // host only: the full state, including both hands and the deck
 let view = null;     // what this screen draws, the same shape for host and guest
+let peer = null;
 let conn = null;
+let hostCode = null; // host only: the room code, kept so a reload can reopen the same room
 let myName = '';
 let selected = null; // index into my hand
 let rematchAsked = false;
@@ -42,6 +52,9 @@ let vsBot = false;   // the computer plays the guest seat in this tab
 let botTimer;
 let botLevel = 'medium';
 let wakeLock = null;
+let reconnecting = false; // guest only: the host dropped and we are trying to get back in
+let hostEnded = false;    // guest only: the host left on purpose
+let leaving = false;
 
 const cleanName = value => String(value ?? '').trim().slice(0, MAX_NAME);
 const rankOf = card => (card[0] === 'T' ? '10' : card[0]);
@@ -51,10 +64,11 @@ const cardImage = card => `cards/${rankOf(card)}_${card[1]}.svg`;
 const cardName = card => t('card', { rank: pick('rank', card[0]), suit: pick('suit', card[1]) });
 const myHand = () => view.hands[view.me];
 const selectedCard = () => (selected === null ? null : myHand()[selected]);
-const myTurn = () => view && !view.over && view.turn === view.me;
+const myTurn = () => view && !view.over && !hostEnded && view.turn === view.me;
 // The computer's name follows the chosen language, so it is never read from the game state.
 const playerName = p => (vsBot && p === GUEST ? pick('bot', botLevel) : view.names[p]);
 const opponentName = () => (view ? playerName(1 - view.me) : t('opponent'));
+const opponentAway = () => isHost && !vsBot && !conn?.open;
 // Engine errors arrive as codes, possibly from the other player, so unknown ones get a generic text.
 const errorText = code => t(hasText(`err_${code}`) ? `err_${code}` : 'err_bad_move');
 
@@ -84,9 +98,42 @@ function loadPref(key) {
 function savePref(key, value) {
   try { localStorage.setItem(key, value); } catch { /* private mode, the choice just is not remembered */ }
 }
+function clearPref(key) {
+  try { localStorage.removeItem(key); } catch { /* nothing stored */ }
+}
+
+// Saved records come from storage this whole github.io origin shares, so check their shape before trusting them.
+function loadRecord(key) {
+  try {
+    const record = JSON.parse(loadPref(key) || 'null');
+    return record && Date.now() - record.savedAt < SAVE_MAX_AGE_MS ? record : null;
+  } catch {
+    return null;
+  }
+}
+function loadSavedGame() {
+  const save = loadRecord(SAVE_KEY);
+  if (save?.game?.board?.length !== SIZE * SIZE || typeof save.name !== 'string') return null;
+  if (save.kind === 'bot' && LEVELS[save.level] && !save.game.over) return save;
+  if (save.kind === 'host' && ROOM_CODE.test(save.code)) return save;
+  return null;
+}
+
+// Called after every change, so a reload or a closed tab can pick the game up again.
+function saveGame() {
+  if (vsBot && game.over) return clearPref(SAVE_KEY);
+  const base = { name: myName, game, savedAt: Date.now() };
+  const record = vsBot ? { ...base, kind: 'bot', level: botLevel } : { ...base, kind: 'host', code: hostCode };
+  savePref(SAVE_KEY, JSON.stringify(record));
+}
 
 // Installable and playable offline against the computer.
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+// Browsers only allow their own generic prompt here; the custom one is behind the leave button.
+window.addEventListener('beforeunload', event => {
+  if (view && !view.over && !leaving && !hostEnded) event.preventDefault();
+});
 
 // Lobby
 
@@ -145,8 +192,10 @@ function fail(message) {
 }
 
 function onPeerError(error) {
-  const message = error.type === 'peer-unavailable'
-    ? t('err_room_closed')
+  // While the guest waits for a reloading host, "room not found" is expected; keep trying.
+  if (reconnecting && error.type === 'peer-unavailable') return;
+  const message = error.type === 'peer-unavailable' ? t('err_room_closed')
+    : error.type === 'unavailable-id' ? t('err_reopen_room')
     : t('err_connection', { type: error.type ?? error.message });
   if (view) toast(message); else fail(message);
 }
@@ -171,16 +220,41 @@ if (navigator.share) {
   });
 }
 
+// Leaving
+
+$('leave').addEventListener('click', () => {
+  if (!view || view.over) return leaveGame();
+  const key = vsBot ? 'leave_bot' : isHost ? 'leave_host' : 'leave_guest';
+  $('leave-text').textContent = t(key, { name: opponentName() });
+  $('leave-dialog').showModal();
+});
+
+$('leave-dialog').addEventListener('close', () => {
+  if ($('leave-dialog').returnValue === 'leave') leaveGame();
+});
+
+function leaveGame() {
+  leaving = true;
+  clearTimeout(botTimer);
+  clearPref(isHost ? SAVE_KEY : JOIN_KEY);
+  // Tell the other side it was on purpose, so they are not left waiting to reconnect.
+  if (conn?.open) conn.send({ type: 'bye' });
+  setTimeout(() => {
+    peer?.destroy();
+    location.replace(location.pathname);
+  }, conn?.open ? BYE_FLUSH_MS : 0);
+}
+
 // Network
 
-function host() {
+function host(code = crypto.randomUUID().slice(0, 8), tries = 0) {
   isHost = true;
-  const code = crypto.randomUUID().slice(0, 8);
+  hostCode = code;
   // ponytail: rooms ride the free PeerJS broker; self-host peerjs-server if it gets flaky.
-  const peer = new Peer(ROOM_PREFIX + code);
+  peer = new Peer(ROOM_PREFIX + code);
   peer.on('open', () => {
     $('invite-link').value = `${location.origin}${location.pathname}?room=${code}`;
-    show('waiting');
+    if (game) publish(); else show('waiting');
   });
   peer.on('connection', c => {
     c.on('data', message => onGuestMessage(c, message));
@@ -188,28 +262,38 @@ function host() {
       if (c !== conn) return;
       conn = null;
       toast(t('friend_left', { name: opponentName() }));
+      if (view) renderStatus();
     });
   });
   peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
-  peer.on('error', onPeerError);
-  // The game only lives in this tab, so warn before a reload throws it away.
-  window.addEventListener('beforeunload', event => { if (game && !game.over) event.preventDefault(); });
+  peer.on('error', error => {
+    // Right after a reload the broker can still hold the old room id for a moment.
+    if (error.type === 'unavailable-id' && game && tries < RECLAIM_TRIES) {
+      peer.destroy();
+      setTimeout(() => host(code, tries + 1), RECLAIM_DELAY_MS);
+      return;
+    }
+    onPeerError(error);
+  });
 }
 
 function onGuestMessage(c, message) {
   if (message?.type === 'hello') {
     // ponytail: whoever opens the link last takes the guest seat; add a seat token if strangers get links.
     if (conn && conn !== c) conn.close();
+    const returning = Boolean(game && view);
     conn = c;
     const guestName = cleanName(message.name) || t('guest');
     if (game) game.names[GUEST] = guestName;
     else game = newGame([myName, guestName]);
     publish();
+    if (returning) toast(t('friend_back', { name: guestName }));
     return;
   }
   if (c !== conn) return;
   if (message?.type === 'move') hostMove(GUEST, message.move, code => c.send({ type: 'error', code }));
   if (message?.type === 'rematch' && game.over) startRematch();
+  if (message?.type === 'bye') c.close();
 }
 
 // onError gets the engine's error code; each side turns it into text in its own language.
@@ -226,6 +310,7 @@ function hostMove(player, move, onError) {
 const showError = code => toast(errorText(code));
 
 function publish() {
+  saveGame();
   render(viewFor(game, HOST));
   if (conn?.open) conn.send({ type: 'state', state: viewFor(game, GUEST) });
   if (vsBot) scheduleBot();
@@ -247,18 +332,50 @@ function startRematch() {
 }
 
 function join() {
-  const peer = new Peer();
+  peer = new Peer();
   setTimeout(() => { if (!view) fail(t('err_unreachable')); }, CONNECT_TIMEOUT_MS);
-  peer.on('open', () => {
-    conn = peer.connect(ROOM_PREFIX + roomCode, { reliable: true });
-    conn.on('open', () => conn.send({ type: 'hello', name: myName }));
-    conn.on('data', message => {
-      if (message?.type === 'state') render(message.state);
-      if (message?.type === 'error') showError(message.code);
-    });
-    conn.on('close', () => toast(t('lost_host')));
-  });
+  peer.on('open', connectToHost);
+  peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
   peer.on('error', onPeerError);
+}
+
+function connectToHost() {
+  conn = peer.connect(ROOM_PREFIX + roomCode, { reliable: true });
+  const current = conn;
+  conn.on('open', () => conn.send({ type: 'hello', name: myName }));
+  conn.on('data', message => {
+    if (message?.type === 'state') {
+      reconnecting = false;
+      savePref(JOIN_KEY, JSON.stringify({ code: roomCode, name: myName, savedAt: Date.now() }));
+      render(message.state);
+    }
+    if (message?.type === 'error') showError(message.code);
+    if (message?.type === 'bye') {
+      hostEnded = true;
+      clearPref(JOIN_KEY);
+      if (view) renderStatus();
+    }
+  });
+  conn.on('close', () => { if (current === conn && view) keepReconnecting(); });
+}
+
+// The host may just be reloading; keep knocking for a while before giving up.
+function keepReconnecting() {
+  if (leaving || hostEnded || reconnecting) return;
+  reconnecting = true;
+  if (view) renderStatus();
+  const deadline = Date.now() + RECONNECT_WINDOW_MS;
+  const timer = setInterval(() => {
+    if (!reconnecting || hostEnded) return clearInterval(timer);
+    if (Date.now() > deadline) {
+      clearInterval(timer);
+      reconnecting = false;
+      if (view) renderStatus();
+      toast(t('lost_host'));
+      return;
+    }
+    if (!conn?.open) connectToHost();
+  }, RECONNECT_EVERY_MS);
 }
 
 function play(move) {
@@ -271,6 +388,34 @@ function play(move) {
   } else {
     toast(t('not_connected'));
   }
+}
+
+// Pick up where this browser left off: a hosted or computer game after a reload,
+// or the room it had joined when the invite link is opened again.
+function resume() {
+  if (roomCode) {
+    const joined = loadRecord(JOIN_KEY);
+    if (joined?.code === roomCode && typeof joined.name === 'string') {
+      $('name').value = joined.name;
+      $('lobby-form').requestSubmit();
+    }
+    return;
+  }
+  const save = loadSavedGame();
+  if (!save) return;
+  myName = save.name;
+  game = save.game;
+  isHost = true;
+  if (save.kind === 'bot') {
+    vsBot = true;
+    botLevel = save.level;
+    publish();
+  } else {
+    hostCode = save.code;
+    publish();
+    if (window.Peer) host(save.code);
+  }
+  toast(t('resumed'));
 }
 
 // Rendering
@@ -411,11 +556,13 @@ function handCard(card, k) {
 
 function statusText() {
   const card = selectedCard();
+  if (hostEnded) return t('host_ended', { name: opponentName() });
   if (view.over) {
     if (view.winner === null) return t('draw');
     return view.winner === view.me ? t('you_win') : t('wins', { name: playerName(view.winner) });
   }
-  if (!myTurn()) return t('thinking', { name: opponentName() });
+  if (reconnecting) return t('reconnecting', { name: opponentName() });
+  if (!myTurn()) return t(opponentAway() ? 'waiting_rejoin' : 'thinking', { name: opponentName() });
   if (!card) return t('your_turn_pick');
   if (isDead(view.board, card)) return t('dead_card');
   if (isWild(card)) return t('wild_status');
@@ -438,7 +585,7 @@ function renderStatus() {
   $('last-move').textContent = lastMoveText();
   $('side').className = `side${view.over && view.winner !== null ? ` won-${view.winner}` : ''}`;
   $('swap').hidden = !(myTurn() && card && isDead(view.board, card) && view.deck > 0);
-  $('rematch').hidden = !view.over;
+  $('rematch').hidden = !view.over || hostEnded;
   $('rematch').disabled = rematchAsked;
   $('rematch').textContent = t(rematchAsked ? 'waiting_host' : 'play_again');
   $('deck-count').textContent = view.deck;
@@ -457,3 +604,5 @@ $('rematch').addEventListener('click', () => {
   rematchAsked = true;
   renderStatus();
 });
+
+resume();

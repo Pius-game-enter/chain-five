@@ -67,7 +67,8 @@ Sau đó game mở toàn màn hình từ biểu tượng riêng, và bạn chơi
 ## Lưu ý
 
 - Mỗi ván dành cho hai người chơi.
-- Người tạo phòng giữ ván đấu. Nếu họ đóng game, ván kết thúc. Nếu bạn là người được mời và lỡ tải lại trang, chỉ cần mở lại link cũ để vào lại.
+- Lỡ tải lại trang hay đóng tab? Mở lại game trên cùng trình duyệt là ván đấu tiếp tục từ chỗ cũ, cho cả hai người chơi. Muốn rời ván thì bấm nút mũi tên quay lại.
+- Người tạo phòng giữ ván đấu trên máy của họ. Nếu họ chủ động rời ván, ván kết thúc cho cả hai người.
 - Chỉ gửi link mời cho người bạn muốn chơi cùng.
 - Một số mạng chặn kết nối, như Wi-Fi ở trường học hay công ty, có thể không chơi online được. Chơi với máy thì luôn chơi được.
 

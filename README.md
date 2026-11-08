@@ -67,7 +67,8 @@ It then opens full screen from its own icon, and you can play the computer anywh
 ## Good to know
 
 - Games are for two players.
-- The player who creates the room keeps the game. If they close it, the game ends. If you are the one invited and you reload, just open the same link again to rejoin.
+- Reloaded or closed the page by accident? Open the game again in the same browser and it picks up where you left off, for both players. Use the back arrow to leave a game on purpose.
+- The player who creates the room keeps the game on their device. If they leave on purpose, the game ends for both of you.
 - Share your invite link only with the person you are playing.
 - Some strict networks, such as certain school or office Wi-Fi, may block playing a friend online. Playing the computer always works.
 

@@ -102,6 +102,12 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(243, 197, 83
   border: 1px solid var(--line);
 }
 .btn.wide { width: 100%; margin-top: 10px; }
+.btn.danger { color: #fff; background: linear-gradient(180deg, #e0574d, #b8352d); box-shadow: 0 8px 22px rgba(224, 87, 77, 0.25); }
+#leave { display: grid; place-items: center; }
+.dialog-text { margin: 0 0 22px; line-height: 1.55; color: #cfdcd7; }
+.dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.dialog-actions .btn { flex: 1; white-space: nowrap; }
+#leave-dialog { width: min(420px, calc(100vw - 32px)); }
 .btn.icon[data-lang-toggle] { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; }
 .panel { position: relative; }
 .panel > .lang-toggle { position: absolute; top: 16px; right: 16px; }
@@ -400,9 +406,10 @@ dialog li + li { margin-top: 6px; }
 @media (max-width: 420px) {
   .topbar, .players { gap: 6px; }
   .player { gap: 6px; padding: 6px 9px; }
-  .player .dot { width: 12px; height: 12px; }
+  /* The line pips already carry each player's colour, so the dot can go. */
+  .player .dot { display: none; }
   .pip { width: 7px; height: 7px; }
-  .topbar .btn.icon { width: 34px; height: 34px; }
+  .topbar .btn.icon { width: 32px; height: 32px; }
 }
 
 /* Short portrait phones: a tighter hand so the bottom row of the board stays visible. */
@@ -429,6 +436,7 @@ dialog li + li { margin-top: 6px; }
 @media (hover: hover) {
   .btn.primary:hover { box-shadow: 0 10px 30px rgba(243, 197, 83, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
   .btn.ghost:hover { background: rgba(255, 255, 255, 0.15); }
+  .btn.danger:hover { background: linear-gradient(180deg, #ea665c, #c23d34); }
   .btn.link:hover { color: var(--ink); }
   .segmented input:hover + span { color: var(--ink); }
   .cell.target:hover { transform: scale(1.1); }
