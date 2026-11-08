@@ -499,6 +499,8 @@ function renderBoard() {
   $('board').classList.toggle('picking', open.size > 0);
   $('board-frame').className = `board-frame${live() ? ` turn-${view.turn}` : ''}${myTurn() ? ' mine' : ''}`;
   $('board').classList.toggle('over', view.over);
+  $('board').classList.toggle('last-removed', Boolean(view.last?.removed));
+  $('board').dataset.last = view.last?.player ?? '';
 
   view.board.forEach((cell, i) => {
     const node = cells[i];

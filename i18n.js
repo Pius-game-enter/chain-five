@@ -34,7 +34,7 @@ export const STRINGS = {
 <li>Your second line may share one chip with your first.</li>
 <li>Corners are free spots that count for everyone.</li>
 <li><b>Wild jacks</b> (J♦ J♣) go on any open spot.</li>
-<li><b>Remove jacks</b> (J♠ J♥) take away one of your opponent's chips. Chips in a finished line are safe.</li>
+<li><b>Remove jacks</b> (J♠ J♥) take away one of your opponent's chips, and that ends your turn. Chips in a finished line are safe.</li>
 <li>If both spots for a card are taken, the card is dead. Swap it for a new one without losing your turn.</li>
 <li>The board is the same every game. Each card is once in the top half and once in the bottom half, in suit and rank order, so you can learn where things are.</li>`,
     you: 'You',
@@ -132,7 +132,7 @@ export const STRINGS = {
 <li>Dãy thứ hai được dùng chung một chip với dãy đầu.</li>
 <li>4 góc là ô tự do, tính cho cả hai người.</li>
 <li><b>J tự do</b> (J♦ J♣) đặt được vào bất kỳ ô trống nào.</li>
-<li><b>J gỡ</b> (J♠ J♥) gỡ một chip của đối thủ. Chip nằm trong dãy đã hoàn thành thì không gỡ được.</li>
+<li><b>J gỡ</b> (J♠ J♥) gỡ một chip của đối thủ, gỡ xong là hết lượt. Chip nằm trong dãy đã hoàn thành thì không gỡ được.</li>
 <li>Nếu cả hai ô của một lá đã có chip, lá đó là lá chết. Đổi lấy lá mới mà không mất lượt.</li>
 <li>Bàn cờ giống nhau ở mọi ván. Mỗi lá có một ô ở nửa trên và một ô ở nửa dưới, xếp theo chất và hạng, nên bạn sẽ dần thuộc vị trí.</li>`,
     you: 'Bạn',
