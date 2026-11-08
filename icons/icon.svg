@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="15%" r="95%"><stop offset="0" stop-color="#1c4a40"/><stop offset="1" stop-color="#0b1715"/></radialGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf5"/><stop offset=".5" stop-color="#fff6e7"/><stop offset="1" stop-color="#e9d7b9"/></linearGradient>
+    <linearGradient id="gold" x1="0" x2=".85" y1=".2" y2="1"><stop stop-color="#fff6b4"/><stop offset=".2" stop-color="#d79a3d"/><stop offset=".55" stop-color="#fff0a1"/><stop offset=".8" stop-color="#a86d23"/><stop offset="1" stop-color="#f4d780"/></linearGradient>
+    <radialGradient id="chip" cx="34%" cy="28%" r="80%"><stop offset="0" stop-color="#ffd2b8"/><stop offset=".07" stop-color="#ffd2b8"/><stop offset=".4" stop-color="#ff8a5b"/><stop offset="1" stop-color="#b4401c"/></radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g transform="rotate(-9 236 236)">
+    <rect x="146" y="112" width="180" height="252" rx="18" fill="url(#paper)" stroke="url(#gold)" stroke-width="7"/>
+    <rect x="160" y="126" width="152" height="224" rx="10" fill="none" stroke="#c9a14a" stroke-width="2"/>
+    <g transform="translate(184 172) scale(0.36)" fill="#101f37"><path d="M0 -75 C-19 -43 -68 -16 -68 23 C-68 51 -45 66 -25 57 C-11 50 -5 41 0 28 C5 41 11 50 25 57 C45 66 68 51 68 23 C68 -16 19 -43 0 -75 Z M-14 42 Q-16 78 -32 84 L32 84 Q16 78 14 42 Z"/></g>
+  </g>
+  <circle cx="300" cy="316" r="98" fill="#000" opacity=".35" transform="translate(0 8)"/>
+  <circle cx="300" cy="316" r="96" fill="url(#chip)"/>
+  <circle cx="300" cy="316" r="60" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="7" stroke-dasharray="15 10"/>
+</svg>
