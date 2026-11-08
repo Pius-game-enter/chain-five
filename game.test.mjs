@@ -49,6 +49,7 @@ assert.equal(s.lines[0], 1, 'sharing two chips is not a new line');
 s = playAs(s, 'JC', filler[6]);
 s = playAs(s, 'JD', 8);
 assert.equal(s.lines[0], 2);
+assert.deepEqual(s.chains, [{ player: 0, cells: [0, 1, 2, 3, 4] }, { player: 0, cells: [4, 5, 6, 7, 8] }]);
 assert.ok(s.over);
 assert.equal(s.winner, 0);
 assert.throws(() => playAs(s, 'JD', 30), /over/);

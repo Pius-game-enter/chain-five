@@ -178,10 +178,20 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(243, 197, 83
   transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 .player.p1 { --c: var(--p1); }
+/* Whoever is to move gets a solid pill in their colour; the other one steps back. */
 .player.active {
-  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: var(--bg);
+  background: var(--c);
   border-color: var(--c);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent), 0 0 24px color-mix(in srgb, var(--c) 28%, transparent);
+  animation: turn-ring 1.8s ease-out infinite;
+}
+.player.active .dot { background: var(--bg); }
+.player.active .pip { border-color: var(--bg); }
+.player.active .pip.on { background: var(--bg); }
+.player.idle { opacity: 0.5; }
+@keyframes turn-ring {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 60%, transparent); }
+  to { box-shadow: 0 0 0 10px color-mix(in srgb, var(--c) 0%, transparent); }
 }
 .player .dot { width: 14px; height: 14px; flex: none; border-radius: 50%; background: var(--c); }
 .player .pname { max-width: 14ch; overflow: hidden; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
@@ -206,9 +216,30 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(243, 197, 83
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: box-shadow 0.4s;
 }
-.board-frame.turn-0 { box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 0 2px color-mix(in srgb, var(--p0) 45%, transparent); }
-.board-frame.turn-1 { box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 0 2px color-mix(in srgb, var(--p1) 45%, transparent); }
-#board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; container-type: inline-size; }
+.board-frame.turn-0 { --c: var(--p0); }
+.board-frame.turn-1 { --c: var(--p1); }
+.board-frame[class*='turn-'] { box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 0 3px var(--c); }
+.board-frame.mine { animation: frame-glow 2s ease-in-out infinite; }
+@keyframes frame-glow {
+  50% { box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 0 3px var(--c), 0 0 32px color-mix(in srgb, var(--c) 55%, transparent); }
+}
+#board { position: relative; display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; container-type: inline-size; }
+
+/* Finished lines: a soft outline around the five chips, drawn in when the line is made. */
+.chains { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.chain {
+  fill: color-mix(in srgb, var(--c) 14%, transparent);
+  stroke: var(--c);
+  stroke-width: 0.07;
+  stroke-dasharray: 1;
+  filter: drop-shadow(0 0 0.12px var(--c));
+  animation: draw 0.7s ease-out both;
+}
+.chain.p0 { --c: var(--p0); }
+.chain.p1 { --c: var(--p1); }
+@keyframes draw { from { stroke-dashoffset: 1; } }
+/* At the end everything outside a finished line fades, so the winning lines stand out. */
+#board.over .cell:not(.locked):not(.free) { filter: brightness(0.5) saturate(0.6); }
 
 /* Mini cards in the deck's palette; the full art is too detailed at this size. */
 .cell {
@@ -290,6 +321,10 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(243, 197, 83
   border: 1px solid var(--line);
   border-radius: 20px;
 }
+.side.turn-0 { --c: var(--p0); }
+.side.turn-1 { --c: var(--p1); }
+.side[class*='turn-'] { border-color: color-mix(in srgb, var(--c) 70%, transparent); box-shadow: inset 0 3px 0 var(--c); }
+.side.mine #status { color: var(--c); }
 #status { min-height: 2.5em; margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; line-height: 1.25; }
 .side.won-0 #status { color: var(--p0); font-size: 30px; }
 .side.won-1 #status { color: var(--p1); font-size: 30px; }

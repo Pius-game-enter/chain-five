@@ -26,6 +26,7 @@ const HOST = 0;
 const GUEST = 1;
 const SUIT_SYMBOL = { S: '♠', H: '♥', D: '♦', C: '♣' };
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const CHAIN_THICKNESS = 0.92; // outline height around a finished line, in board cells
 // Suit glyphs from the deck in cards/, drawn small on the board cells.
 const SUIT_GLYPH = {
   S: '<path d="M0 -75 C-19 -43 -68 -16 -68 23 C-68 51 -45 66 -25 57 C-11 50 -5 41 0 28 C5 41 11 50 25 57 C45 66 68 51 68 23 C68 -16 19 -43 0 -75 Z M-14 42 Q-16 78 -32 84 L32 84 Q16 78 14 42 Z"/>',
@@ -64,7 +65,9 @@ const cardImage = card => `cards/${rankOf(card)}_${card[1]}.svg`;
 const cardName = card => t('card', { rank: pick('rank', card[0]), suit: pick('suit', card[1]) });
 const myHand = () => view.hands[view.me];
 const selectedCard = () => (selected === null ? null : myHand()[selected]);
-const myTurn = () => view && !view.over && !hostEnded && view.turn === view.me;
+// A game someone can still move in; the host ending it freezes the guest's copy.
+const live = () => view && !view.over && !hostEnded;
+const myTurn = () => live() && view.turn === view.me;
 // The computer's name follows the chosen language, so it is never read from the game state.
 const playerName = p => (vsBot && p === GUEST ? pick('bot', botLevel) : view.names[p]);
 const opponentName = () => (view ? playerName(1 - view.me) : t('opponent'));
@@ -428,6 +431,13 @@ const cells = Array.from({ length: SIZE * SIZE }, (_, i) => {
   return node;
 });
 
+// Finished lines are outlined over the chips, one board cell per unit.
+const chainLayer = document.createElementNS(SVG_NS, 'svg');
+chainLayer.setAttribute('class', 'chains');
+chainLayer.setAttribute('viewBox', `0 0 ${SIZE} ${SIZE}`);
+chainLayer.setAttribute('aria-hidden', 'true');
+$('board').append(chainLayer);
+
 function onCell(i) {
   if (!myTurn()) return toast(t('their_turn', { name: opponentName() }));
   const card = selectedCard();
@@ -473,7 +483,8 @@ function renderPlayers() {
   view.names.forEach((_, p) => {
     const name = playerName(p);
     const box = $(`player-${p}`);
-    box.classList.toggle('active', view.turn === p && !view.over);
+    box.classList.toggle('active', view.turn === p && live());
+    box.classList.toggle('idle', view.turn !== p && live());
     box.querySelector('.pname').textContent = p === view.me ? t('you') : name;
     box.querySelector('.lines').replaceChildren(
       ...Array.from({ length: LINES_TO_WIN }, (_, k) => el('span', k < view.lines[p] ? 'pip on' : 'pip')),
@@ -486,7 +497,8 @@ function renderBoard() {
   const card = selectedCard();
   const open = new Set(card ? targets(view.board, card, view.me) : []);
   $('board').classList.toggle('picking', open.size > 0);
-  $('board-frame').className = `board-frame${view.over ? '' : ` turn-${view.turn}`}`;
+  $('board-frame').className = `board-frame${live() ? ` turn-${view.turn}` : ''}${myTurn() ? ' mine' : ''}`;
+  $('board').classList.toggle('over', view.over);
 
   view.board.forEach((cell, i) => {
     const node = cells[i];
@@ -503,6 +515,29 @@ function renderBoard() {
     node.classList.toggle('target', open.has(i));
     node.classList.toggle('remove', open.has(i) && isRemove(card));
     node.classList.toggle('last', view.last?.cell === i);
+  });
+  renderChains();
+}
+
+// Only new chains are appended so each outline draws in once; a rematch starts the layer over.
+function renderChains() {
+  const chains = view.chains ?? [];
+  if (chains.length < chainLayer.childElementCount) chainLayer.replaceChildren();
+  chains.slice(chainLayer.childElementCount).forEach(({ player, cells: line }) => {
+    // A capsule around the five cells: centre to centre, padded by half a cell, turned to the line's angle.
+    const [[x1, y1], [x2, y2]] = [line[0], line.at(-1)].map(i => [(i % SIZE) + 0.5, Math.floor(i / SIZE) + 0.5]);
+    const length = Math.hypot(x2 - x1, y2 - y1) + CHAIN_THICKNESS;
+    const [cx, cy] = [(x1 + x2) / 2, (y1 + y2) / 2];
+    const ring = document.createElementNS(SVG_NS, 'rect');
+    ring.setAttribute('class', `chain p${player}`);
+    ring.setAttribute('pathLength', '1');
+    ring.setAttribute('x', cx - length / 2);
+    ring.setAttribute('y', cy - CHAIN_THICKNESS / 2);
+    ring.setAttribute('width', length);
+    ring.setAttribute('height', CHAIN_THICKNESS);
+    ring.setAttribute('rx', CHAIN_THICKNESS / 2);
+    ring.setAttribute('transform', `rotate(${(Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI} ${cx} ${cy})`);
+    chainLayer.append(ring);
   });
 }
 
@@ -583,7 +618,8 @@ function renderStatus() {
   const card = selectedCard();
   $('status').textContent = statusText();
   $('last-move').textContent = lastMoveText();
-  $('side').className = `side${view.over && view.winner !== null ? ` won-${view.winner}` : ''}`;
+  const turnClass = !live() ? '' : ` turn-${view.turn}${myTurn() ? ' mine' : ''}`;
+  $('side').className = `side${view.over && view.winner !== null ? ` won-${view.winner}` : turnClass}`;
   $('swap').hidden = !(myTurn() && card && isDead(view.board, card) && view.deck > 0);
   $('rematch').hidden = !view.over || hostEnded;
   $('rematch').disabled = rematchAsked;

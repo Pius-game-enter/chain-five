@@ -64,6 +64,7 @@ export function newGame(names, random = Math.random) {
     hands: names.map(() => deck.splice(0, HAND_SIZE)),
     names: [...names],
     lines: names.map(() => 0),
+    chains: [],
     turn: Math.floor(random() * names.length),
     last: null,
     over: false,
@@ -92,12 +93,12 @@ function hasMove(state, player) {
     || (state.deck.length > 0 && hand.some(card => isDead(state.board, card)));
 }
 
-// Lock every new five-in-a-row through `at`. A new line may reuse at most one
-// chip from a line already made; corners count for everyone.
+// Lock every new five-in-a-row through `at` and return their cells. A new line
+// may reuse at most one chip from a line already made; corners count for everyone.
 function claimLines(board, at, player) {
   const inside = (r, c) => r >= 0 && r < SIZE && c >= 0 && c < SIZE;
   const counts = (r, c) => inside(r, c) && (board[r * SIZE + c].owner === player || board[r * SIZE + c].card === null);
-  let made = 0;
+  const made = [];
   for (const [dr, dc] of DIRECTIONS) {
     let r = Math.floor(at / SIZE);
     let c = at % SIZE;
@@ -108,7 +109,7 @@ function claimLines(board, at, player) {
       const window = run.slice(k, k + LINE_LENGTH);
       if (window.filter(i => board[i].locked).length > 1) continue;
       window.forEach(i => { if (board[i].card !== null) board[i].locked = true; });
-      made++;
+      made.push(window);
     }
   }
   return made;
@@ -139,7 +140,10 @@ export function applyMove(state, player, move) {
   if (removed) cell.owner = null;
   else {
     cell.owner = player;
-    next.lines[player] += claimLines(next.board, move.cell, player);
+    const made = claimLines(next.board, move.cell, player);
+    next.lines[player] += made.length;
+    // Saves from before chains were recorded have none, so start the list here.
+    next.chains = [...(next.chains ?? []), ...made.map(cells => ({ player, cells }))];
   }
   if (next.deck.length > 0) hand.push(next.deck.pop());
   next.last = { player, card: move.card, cell: move.cell, removed };
