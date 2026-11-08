@@ -45,4 +45,4 @@ python3 -m http.server 8765
 ## Deploy to GitHub Pages
 
 1. Settings, Pages, Source: "Deploy from a branch", branch `main`, folder `/ (root)`.
-2. The game goes live at https://pius-game-enter.github.io/sequence-board-game/
+2. The game goes live at https://pius-game-enter.github.io/chain-five/
